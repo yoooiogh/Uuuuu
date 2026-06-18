@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Overlay Simulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Container designed to match the aspect ratio of the screenshot */
+        .app-container {
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            background-color: #0b0b0d;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Top Header Area matching screenshot */
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: #0f0f12;
+            border-bottom: 1px solid #1a1a22;
+        }
+
+        .manager-dropdown {
+            font-size: 15px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .manager-dropdown::after {
+            content: "▼";
+            font-size: 10px;
+            margin-left: 2px;
+        }
+
+        .stats-badges {
+            display: flex;
+            gap: 6px;
+        }
+
+        .badge {
+            background-color: #1f1f23;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge-timer::before {
+            content: "🕒";
+            font-size: 11px;
+        }
+
+        .badge-viewers::before {
+            content: "👥";
+            font-size: 11px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #adadb8;
+        }
+
+        .gear-icon {
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .profile-dot {
+            width: 20px;
+            height: 20px;
+            background-color: #464649;
+            border-radius: 50%;
+        }
+
+        /* Live Chat Sub-header */
+        .chat-title-bar {
+            padding: 14px 16px;
+            font-size: 15px;
+            font-weight: bold;
+            background-color: #0b0b0d;
+            border-bottom: 1px solid #16161c;
+        }
+
+        /* Stream / Video Area Placeholder (Matches the dark/redacted middle segment) */
+        .stream-viewport {
+            flex-grow: 1;
+            background-color: #050505;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        /* Integrated Chat Stream - fully expanded and visible */
+        .chat-container {
+            height: 100%;
+            width: 100%;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 0px;
+        }
+
+        .chat-line {
+            font-size: 13px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            animation: fadeIn 0.15s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Bottom Input Bar Area */
+        .input-bar {
+            padding: 12px 16px;
+            background-color: #0b0b0d;
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input-wrapper {
+            flex-grow: 1;
+            background-color: #18181b;
+            border: 1px solid #2f2f35;
+            border-radius: 6px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+        }
+
+        .message-input-wrapper input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .message-input-wrapper input::placeholder {
+            color: #757575;
+        }
+
+        .chat-btn {
+            background-color: #9146ff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0 18px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .chat-btn:hover {
+            background-color: #772ce8;
+        }
+
+        /* Navigation Dock at the very bottom */
+        .nav-dock {
+            background-color: #060608;
+            border-top: 1px solid #121217;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #adadb8;
+            font-size: 11px;
+            cursor: pointer;
+            width: 60px;
+        }
+
+        .nav-item.active {
+            color: #9146ff;
+        }
+
+        .nav-icon {
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Top Toolbar Elements -->
+        <div class="top-header">
+            <div class="manager-dropdown">Manager</div>
+            <div class="stats-badges">
+                <div class="badge badge-timer">0:15:00</div>
+                <div class="badge badge-viewers" id="viewerLabel">14.5K</div>
+            </div>
+            <div class="header-actions">
+                <span class="gear-icon">⚙️</span>
+                <div class="profile-dot"></div>
+            </div>
+        </div>
+
+        <!-- Chat Header Panel -->
+        <div class="chat-title-bar">Live Chat</div>
+
+        <!-- Live Viewport Segment containing streaming chats -->
+        <div class="stream-viewport">
+            <!-- Chat Container inside stream frame window -->
+            <div class="chat-container" id="chatContainer"></div>
+        </div>
+
+        <!-- Composition Input controls -->
+        <div class="input-bar">
+            <div class="message-input-wrapper">
+                <input type="text" placeholder="Send a message" disabled>
+            </div>
+            <button class="chat-btn">Chat</button>
+        </div>
+
+        <!-- Bottom Tab Interface Layout -->
+        <div class="nav-dock">
+            <div class="nav-item">
+                <span class="nav-icon">📺</span>
+                <span>Stream</span>
+            </div>
+            <div class="nav-item">
+                <span class="nav-icon">🔔</span>
+                <span>Feed</span>
+            </div>
+            <div class="nav-item active">
+                <span class="nav-icon">💬</span>
+                <span>Chat</span>
+            </div>
+            <div class="nav-item">
+                <span class="nav-icon">👥</span>
+                <span>Collab</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA DICTIONARIES ---
+        const chatUsernames = [
+            "GamerX", "StreamSniper", "GlitchFace", "PixelLord", "VibeCheck99", 
+            "Shadow_Runs", "CyberPunk", "HyperDrive", "NeonKnight", "KappaClaus",
+            "ChillBeans", "ToxicAvenger", "PogChamp_69", "LootGoblin", "WkeySpammer"
+        ];
+
+        const chatTemplates = [
+            "Yo Matthew! What's good?", "stream is rendering perfectly today ngl", "bro what are you wearing lmao 💀",
+            "Sending good vibes for the stream today! ✨", "drop the playlist link expeditiously", "actually throwing, uninstall please",
+            "That play was clean, absolute cinema", "We eating good with this stream tonight", "Hello Matthew hope you are having a nice day",
+            "wait what did I miss? Just tapped in", "This gameplay is cooked. Absolutely cooked.", "Your layout looks so pretty today! 💜",
+            "can we get a W in the chat", "standard Matthew L tbh", "blaze it up, front row seats to greatness lets gooo",
+            "bro thinks he’s him 😭", "Incredible tracking right there!", "is it just me or is the audio kinda low?",
+            "Audio is fine for me, check your setup", "preview of a professional hardstuck player", "absolute textbook execution right there",
+            "This stream always clears my bad mood", "boring. play something else", "Love the energy today Matthew! 🔥",
+            "chat is moving so fast wtf", "peak entertainment right here", "bro is playing with his eyes closed surely",
+            "That overlay looks so sleek wow", "setup is looking highkey fire", "worst stream on the platform hands down",
+            "The comeback is going to be legendary", "bro got zero aura after that play", "you got this!! don't let the trolls get to you",
+            "valid strategy honestly", "my grandmother plays faster than this", "That was a massive brain move",
+            "bro is coping so hard right now", "Let's goooo! Big dubs only!", "wait is this live or a recording?",
+            "live chat, we here!", "missing every shot is crazy work", "Mod team is working overtime today bless them",
+            "loving the vibe so much! 🥰", "you need to adjust your sensitivity fr", "built different fr fr",
+            "drop the spec sheet for the PC again?", "imagine hating in the chat, couldn't be me", "bro is entirely washed, tragic to see",
+            "THAT WAS INSANE!!!", "stealth lurk activated 🥷", "unlocked a new fear watching that play lol",
+            "You're doing amazing sweetie! 🐝", "mid stream, checking out", "The framerate is buttery smooth today",
+            "stream schedule update when?", "bro is frozen in fear lmao", "Thank you for always streaming, love the content!",
+            "chat is under collective hypnosis right now", "L + ratio + fell off", "blast off! we reaching the milestone tonight!",
+            "midnight streams just hit different", "secure the bag Matthew!", "actual definition of a skill issue right here",
+            "So wholesome, love this community🌸", "wait what game is this?", "bro got deleted out of existence",
+            "that reaction time was crazy fast", "unban my boy please he did nothing wrong", "lowkey the best stream on twitch rn",
+            "pure garbage gameplay, I'm out", "This music is so relaxing", "we up right now!! 📈",
+            "bro is saltier than the dead sea", "Keep shining Matthew!", "clutch or kick let's see it",
+            "I'm literally falling asleep watching this", "massive W, we love to see it", "typing with one hand eating pizza, still better than you",
+            "This stream is pure comfort content", "wait for the drop...", "crying and throwing up over that loss",
+            "manipulation of the highest order, clean play", "highkey enjoying this right now", "system error: streamer brain not found",
+            "Hope everyone in chat is having a beautiful day!", "speedy recovery from that blunder", "definitely using aimbot and still missing lmao",
+            "been here since day one, love the growth!", "let's analyze the economic impact of that play", "who allowed this man to broadcast 💀",
+            "rizz level is off the charts today", "so cute! look at the chat go", "absolute chaos and I am here for it",
+            "GG, it's over, wrap it up", "We go again! Back to back wins let's get it", "everybody in chat needs to relax fr",
+            "grandpa needs to retire from gaming", "Such a peaceful stream tonight, thank you", "absolute peak performance",
+            "bro vanished from the scoreboard", "New meme format just dropped", "Matthew looking sharp today! 😍",
+            "actual circus going on in this stream", "commands aren't working for me", "vibe check passed with flying colors",
+            "bro is yapping so much today", "500 IQ play right there, nobody can convince me otherwise", "You'll get it next time, don't worry!",
+            "welcome to the hardstuck club Matthew", "This stream gives me so much life", "lag? or just bad?",
+            "love the background setup so much", "bro thinks he's the main character 😭", "literal gold content right here",
+            "PANIC MODE ACTIVATED", "mod team clean up aisle three please", "at least you tried, that's what counts!",
+            "unbothered. moisturized. happy. in my lane.", "actual garbage tier gameplay lmao", "taking a deep breath after that one",
+            "stream is completely cooking tonight", "my little brother plays better than this fr", "snacking on popcorn watching this drama",
+            "output looks beautiful today", "building a house with all them bricks you throwing", "lucky play but we take those",
+            "infinite aura points gained", "hurts to watch but I can't look away", "setup is looking spicy today Matthew",
+            "zero hype, dead stream, nothing to see here", "Absolutely floating after that victory!", "sharing one collective brain cell with chat right now",
+            "crying on stream is a crazy look", "proud of you son", "bro went into avatar state right there",
+            "absolute worst content on my feed today", "Such a chill atmosphere tonight", "slicing through the competition let's go",
+            "adding this clip to the cringe compilation", "The lighting is hitting perfectly right now", "processing that terrible play... error found",
+            "Take a break if you need water Matthew! Drink water!", "chat is absolutely rioting lmao", "cooked him to a crisp",
+            "don't listen to the haters, you're doing great", "skill check: FAILED ❌", "Love the community here, so welcoming",
+            "overlay drip is immaculate", "dude just delete the channel at this point", "absolutely electric energy right now!",
+            "wait did the stream just rewind or am I tripping", "You have the nicest smile Matthew!", "delete this stream immediately 🗑️",
+            "music selection is top tier today", "grind never stops, let's get it", "bro is typing paragraphs in chat chill out",
+            "smooth movement, absolutely locked in", "Hope you're having a wonderful evening!", "bro skipped the tutorial obviously",
+            "Literally my favorite streamer right now", "can you hear us? mic check?", "typing trash while being down points is wild",
+            "This stream makes me so happy after a long day", "alpha energy only in this chat 😤", "boooooring, do a giveaway or something",
+            "neon vibes, color palette of the stream is so aesthetic", "actual 4D chess player right here", "tragic ending to a beautiful run",
+            "Sending you lots of love and support!", "bro is thick-headed as a brick fr", "defending this chat with my life 🛡️",
+            "flawless victory incoming", "clown emoji stream right now", "Everything about this stream is perfect",
+            "we moving at hyperspeed now boyzzzz", "zero talent, pure luck stream", "visual effects are looking clean",
+            "Sweetheart you are doing a wonderful job, keep it up!", "haters are fuming in the comments right now", "ready for the main event",
+            "crown slipped, entirely washed", "perfect stream to fall asleep to (in a good way)", "Bro's aura is radiating through the screen",
+            "it's gg, pack it up boys", "rising from the ashes of that terrible play!", "chill vibes only, keep the chat positive guys, no negativity",
+            "dumpster fire of a stream and I love it", "Setting the gold standard for streaming", "streamer is experiencing major brain lag rn",
+            "You brighten up my day Matthew!", "that flank was actually nasty", "came here just to drop an L",
+            "nothing but immaculate vibes in here", "solid gameplay, ignore the chat backseat driving", "bro please stop yapping it’s so cringe",
+            "content is absolute liquid gold tonight", "We reached the peak of entertainment", "dude is mad because he lost a pixel game 💀",
+            "camera quality looks incredible today", "chat unlocked the secret final boss victory let's gooo!"
+        ];
+
+        const chatFillers = [" PogU!!!", " LFG!!!", " Hype!", " lmao", " KekW", " 🔥🔥🔥", " 💀💀💀", " monkaS", " NotLikeThis", " GIGACHAD"];
+        const userColors = ["#3498db", "#e74c3c", "#2ecc71", "#f1c40f", "#e67e22", "#1abc9c", "#9146ff", "#ff73fa", "#00f0ff"];
+
+        const chatContainer = document.getElementById('chatContainer');
+
+        // --- FIXED 2 MESSAGES PER SECOND ENGINE ---
+        function pushMessage() {
+            const user = chatUsernames[Math.floor(Math.random() * chatUsernames.length)];
+            const color = userColors[Math.floor(Math.random() * userColors.length)];
+            const phrase = chatTemplates[Math.floor(Math.random() * chatTemplates.length)];
+            const filler = Math.random() > 0.4 ? chatFillers[Math.floor(Math.random() * chatFillers.length)] : "";
+
+            const line = document.createElement('div');
+            line.className = 'chat-line';
+            line.innerHTML = `<span style="color: ${color}; font-weight: bold; margin-right: 4px;">${user}:</span><span>${phrase}${filler}</span>`;
+            
+            chatContainer.appendChild(line);
+
+            if (chatContainer.children.length > 60) {
+                chatContainer.removeChild(chatContainer.firstChild);
+            }
+
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        setInterval(pushMessage, 500);
+
+        // --- BACKGROUND SPEECH UTIL ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+            recognition.onend = () => { recognition.start(); };
+            recognition.start();
+        }
+    </script>
+</body>
+</html>
